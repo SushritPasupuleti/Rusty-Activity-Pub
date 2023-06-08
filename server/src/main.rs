@@ -43,8 +43,9 @@ async fn main() {
         .route("/", get(|| async { "Hello, World!" }))
         .route("/sha256", get(get_sha256))
         .route("/accounts", get(get_accounts))
-        .with_state(state)
-        .merge(routes::api::api_routes())
+        // .merge(routes::api::api_routes().with_state(state))
+        .with_state(state.clone())
+        .nest("/api", routes::api::api_routes(state.clone()))
         .layer(cors);
 
     // app.with_state(state);
