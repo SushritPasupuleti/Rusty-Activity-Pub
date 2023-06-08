@@ -1,5 +1,6 @@
 mod routes;
 mod handlers;
+mod middleware;
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
 use base64;
