@@ -40,8 +40,18 @@ struct Sha256Result {
     key: Option<String>,
 }
 
-async fn getSHA256() -> impl IntoResponse {
-    let message = b"hello world";
+#[derive(serde::Serialize, serde::Deserialize)]
+struct ShaRequestQuery {
+    message: String,
+    key: String,
+}
+
+async fn getSHA256(
+    query: axum::extract::Query<ShaRequestQuery>,
+    ) -> impl IntoResponse {
+    let message = query.message.as_bytes();
+
+    println!("message: {:?}", query.message);
 
     let mut hasher = Sha256::new();
 
@@ -69,10 +79,10 @@ async fn getSHA256() -> impl IntoResponse {
 
     println!("Res: {}: ", res);
 
-    // let mut key_value = [0u8; 48];
-    let mut key_value = "secret".as_bytes().to_vec();
+    // let mut key_value = b"".as_bytes().to_vec();
+    let mut key_value = query.key.as_bytes().to_vec();
 
-    println!("key_value: {:?}", key_value);
+    println!("secret: {:?}, key_value: {:?}", query.key, key_value);
 
     let rng = rand::SystemRandom::new();
     //don't seed random here as we will use PrivateKey to seed it
