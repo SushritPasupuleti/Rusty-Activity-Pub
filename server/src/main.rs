@@ -4,11 +4,23 @@ use hex;
 use ring::rand::SecureRandom;
 use ring::{digest, hmac, rand};
 use sha2::{Digest, Sha256, Sha512};
+use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main]
 async fn main() {
+    dotenv::dotenv().expect("Unable to load environment variables from .env file");
+
+    //db setup
+    let db_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL env var");
+
+    let pool = PgPoolOptions::new()
+        .max_connections(100)
+        .connect(&db_url)
+        .await
+        .expect("Unable to connect to Postgres");
+
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
@@ -19,6 +31,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         .route("/sha256", get(get_sha256))
+        .route("/accounts", get(get_accounts))
         .layer(cors);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 5000));
@@ -44,6 +57,20 @@ struct Sha256Result {
 struct ShaRequestQuery {
     message: String,
     key: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
+#[derive(sqlx::FromRow)]
+struct Account {
+    name: String,
+    privkey: String,
+    pubkey: String,
+    webfinger: String,
+    actor: String,
+    apikey: String,
+    followers: String,
+    messages: String,
 }
 
 async fn get_sha256(query: axum::extract::Query<ShaRequestQuery>) -> impl IntoResponse {
@@ -111,4 +138,49 @@ async fn get_sha256(query: axum::extract::Query<ShaRequestQuery>) -> impl IntoRe
     println!("Res2: {}: ", res2);
 
     (StatusCode::OK, Json(res_array))
+}
+
+async fn get_accounts() -> impl IntoResponse {
+    let db_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL env var");
+
+    let pool = PgPoolOptions::new()
+        .max_connections(100)
+        .connect(&db_url)
+        .await
+        .expect("Unable to connect to Postgres");
+
+    // let accounts: Vec<Account> = sqlx::query_as!(Account, "SELECT * FROM accounts")
+        let accounts_raw = sqlx::query!("SELECT * FROM accounts")
+        .fetch_all(&pool)
+        .await
+        .expect("Unable to fetch accounts");
+
+    // println!("accounts: {:?}", accounts_raw);
+
+    let mut structured_accounts: Vec<Account> = Vec::new();
+
+    for account in accounts_raw {
+        println!("account: {:?}", account);
+        
+        let account_struct = Account {
+            // name: Some(account.name).unwrap_or("".to_string()),
+            name: format!("{:?}", account.name),
+            privkey: format!("{:?}", account.privkey),
+            pubkey: format!("{:?}", account.pubkey),
+            webfinger: format!("{:?}", account.webfinger),
+            actor: format!("{:?}", account.actor),
+            apikey: format!("{:?}", account.apikey),
+            followers: format!("{:?}", account.followers),
+            messages: format!("{:?}", account.messages),
+        };
+
+        structured_accounts.push(account_struct);
+    }
+
+    let accounts_struct = sqlx::query_as::<_, Account>(r"SELECT * FROM accounts")
+        .fetch_all(&pool)
+        .await
+        .expect("Unable to fetch accounts");
+
+    (StatusCode::OK, Json(accounts_struct))
 }
