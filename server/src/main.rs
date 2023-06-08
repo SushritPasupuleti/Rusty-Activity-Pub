@@ -18,7 +18,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
-        .route("/sha256", get(getSHA256))
+        .route("/sha256", get(get_sha256))
         .layer(cors);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 5000));
@@ -46,9 +46,7 @@ struct ShaRequestQuery {
     key: String,
 }
 
-async fn getSHA256(
-    query: axum::extract::Query<ShaRequestQuery>,
-    ) -> impl IntoResponse {
+async fn get_sha256(query: axum::extract::Query<ShaRequestQuery>) -> impl IntoResponse {
     let message = query.message.as_bytes();
 
     println!("message: {:?}", query.message);
@@ -80,11 +78,11 @@ async fn getSHA256(
     println!("Res: {}: ", res);
 
     // let mut key_value = b"".as_bytes().to_vec();
-    let mut key_value = query.key.as_bytes().to_vec();
+    let key_value: Vec<u8> = query.key.as_bytes().to_vec();
 
     println!("secret: {:?}, key_value: {:?}", query.key, key_value);
 
-    let rng = rand::SystemRandom::new();
+    // let rng = rand::SystemRandom::new();
     //don't seed random here as we will use PrivateKey to seed it
     // rng.fill(&mut key_value).unwrap();
     let key = hmac::Key::new(hmac::HMAC_SHA256, &key_value);
