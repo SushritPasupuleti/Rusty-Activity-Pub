@@ -1,3 +1,6 @@
+mod routes;
+mod handlers;
+
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
 use base64;
 use hex;
@@ -10,7 +13,7 @@ use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
 // #[derive(Clone)]
-struct AppState {
+pub struct AppState {
     db_pool: sqlx::PgPool,
 }
 
@@ -41,6 +44,7 @@ async fn main() {
         .route("/sha256", get(get_sha256))
         .route("/accounts", get(get_accounts))
         .with_state(state)
+        .merge(routes::api::api_routes())
         .layer(cors);
 
     // app.with_state(state);
@@ -153,7 +157,6 @@ async fn get_sha256(
 }
 
 async fn get_accounts(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let db_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL env var");
 
     let pool = &state.db_pool; 
 
