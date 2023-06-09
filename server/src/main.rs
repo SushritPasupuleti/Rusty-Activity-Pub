@@ -3,6 +3,7 @@ mod handlers;
 mod middleware;
 mod models;
 mod ActivityPub;
+mod utils;
 
 use crate::models::accounts::Account;
 
@@ -20,6 +21,8 @@ use tower_http::cors::{Any, CorsLayer};
 // #[derive(Clone)]
 pub struct AppState {
     db_pool: sqlx::PgPool,
+    host_name: String,
+    host_url: String,
 }
 
 #[tokio::main]
@@ -28,6 +31,8 @@ async fn main() {
 
     //db setup
     let db_url = std::env::var("DATABASE_URL").expect("Unable to read DATABASE_URL env var");
+    let host_name = std::env::var("HOST_NAME").expect("Unable to read HOST_NAME env var");
+    let host_url = std::env::var("HOST_URL").expect("Unable to read HOST_URL env var");
 
     let pool = PgPoolOptions::new()
         .max_connections(100)
@@ -38,7 +43,11 @@ async fn main() {
     //run migrations
     sqlx::migrate!().run(&pool).await.expect("Unable to run migrations");
 
-    let state = Arc::new(AppState { db_pool: pool });
+    let state = Arc::new(AppState { 
+        db_pool: pool,
+        host_name,
+        host_url,
+    });
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -55,6 +64,7 @@ async fn main() {
         .with_state(state.clone())
         .nest("/api", routes::api::api_routes(state.clone()))
         .nest("/.well-known/webfinger", routes::webfinger::api_routes(state.clone()))
+        .nest("/users", routes::users::api_routes(state.clone()))
         .layer(cors);
 
     // app.with_state(state);

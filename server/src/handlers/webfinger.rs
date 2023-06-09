@@ -14,18 +14,13 @@ pub struct GetUserQuery {
     resource: String,
 }
 
-pub enum TypeOr<S, T> {
-    Left(S),
-    Right(T),
-}
-
 pub async fn get_web_finger(
     query: axum::extract::Query<GetUserQuery>,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
     let resource: &str = query.resource.as_str();
 
-    let host_url = std::env::var("HOST_URL").expect("Unable to read HOST_URL env var");
+    let host_url = &state.host_url;
 
     println!("resource: {:?}", resource);
 

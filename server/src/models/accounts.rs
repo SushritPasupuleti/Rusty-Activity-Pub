@@ -17,3 +17,8 @@ pub struct Account {
 pub struct AccountWebFinger {
     pub webfinger: String,
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+pub struct AccountActor {
+    pub name: String,
+}

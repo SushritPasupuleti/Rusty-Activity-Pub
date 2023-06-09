@@ -48,6 +48,7 @@ cargo watch -q -c -w src/ -x run
     - cargo.toml
     - cargo.lock
     - src/
+        - ActivityPub.rs
         - handlers.rs
         - main.rs
         - middleware.rs
@@ -55,6 +56,8 @@ cargo watch -q -c -w src/ -x run
         - routes.rs
         - schema.rs
         - utils.rs
+        - ActivityPub/
+            ...ActivityPub (main logic)
         - handlers/
             ...handlers
         - middleware/
