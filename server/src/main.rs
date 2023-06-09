@@ -1,6 +1,10 @@
 mod routes;
 mod handlers;
 mod middleware;
+mod models;
+mod ActivityPub;
+
+use crate::models::accounts::Account;
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
 use base64;
@@ -50,6 +54,7 @@ async fn main() {
         // .merge(routes::api::api_routes().with_state(state))
         .with_state(state.clone())
         .nest("/api", routes::api::api_routes(state.clone()))
+        .nest("/.well-known/webfinger", routes::webfinger::api_routes(state.clone()))
         .layer(cors);
 
     // app.with_state(state);
@@ -77,18 +82,6 @@ struct Sha256Result {
 struct ShaRequestQuery {
     message: String,
     key: String,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
-struct Account {
-    name: String,
-    privkey: String,
-    pubkey: String,
-    webfinger: String,
-    actor: String,
-    apikey: String,
-    followers: String,
-    messages: String,
 }
 
 async fn get_sha256(
