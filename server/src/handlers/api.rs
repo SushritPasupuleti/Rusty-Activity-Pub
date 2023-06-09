@@ -50,6 +50,7 @@ pub struct Claims {
     pub iss: String,
     /// Time when this token was issued as UNIX-timestamp in seconds
     pub iat: i64,
+    // pub exp: Option<i64>,
 }
 
 pub async fn gen_jwt(State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -60,6 +61,7 @@ pub async fn gen_jwt(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         sub: 1,
         iss: "https://example.com".to_string(),
         iat: 1234567890,
+        // exp: None,
     };
 
     let key: EncodingKey = EncodingKey::from_secret("secret for JWT".as_ref());
@@ -79,3 +81,4 @@ pub async fn gen_jwt(State(state): State<Arc<AppState>>) -> impl IntoResponse {
 
     (StatusCode::OK, Json(result))
 }
+
