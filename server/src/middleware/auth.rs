@@ -20,6 +20,8 @@ pub async fn authorization_check<B>(mut req: Request<B>, next: Next<B>) -> Resul
         .get(http::header::AUTHORIZATION)
         .and_then(|header| header.to_str().ok());
 
+    println!("auth_header: {:?}", auth_header);
+
     let auth_header = if let Some(auth_header) = auth_header {
         auth_header
     } else {

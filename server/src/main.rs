@@ -31,6 +31,9 @@ async fn main() {
         .await
         .expect("Unable to connect to Postgres");
 
+    //run migrations
+    sqlx::migrate!().run(&pool).await.expect("Unable to run migrations");
+
     let state = Arc::new(AppState { db_pool: pool });
 
     let cors = CorsLayer::new()

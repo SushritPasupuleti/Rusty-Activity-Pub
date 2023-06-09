@@ -10,5 +10,6 @@ pub fn api_routes<S>(state: Arc<AppState>) -> Router<S> {
         //auth middleware is applied to all above next line.
         .route_layer(middleware::from_fn(auth::authorization_check))
         .route("/test-api", get(handlers::api::test_api))
+        .route("/gen-jwt", get(handlers::api::gen_jwt))
         .with_state(state)
 }
