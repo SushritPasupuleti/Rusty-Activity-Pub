@@ -25,6 +25,8 @@ pub async fn get_web_finger(
 ) -> impl IntoResponse {
     let resource: &str = query.resource.as_str();
 
+    let host_url = std::env::var("HOST_URL").expect("Unable to read HOST_URL env var");
+
     println!("resource: {:?}", resource);
 
     let _webfinger_result = if resource.contains("acct:") {
@@ -50,7 +52,7 @@ pub async fn get_web_finger(
             links: vec![Links {
                 rel: "self".to_string(),
                 r#type: "application/activity+json".to_string(),
-                href: format!("https://localhost:3000/users/{}", accounts[0].webfinger),
+                href: format!("{}/users/{}", host_url, accounts[0].webfinger),
             }],
         };
 
