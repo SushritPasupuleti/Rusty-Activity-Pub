@@ -43,3 +43,17 @@ Create new migration:
 cd server
 sqlx migrate add <migration_name>
 ```
+
+### Development
+
+Auto-reloading server:
+
+```
+cargo install cargo-watch
+```
+
+```
+cd server
+cargo watch -q -c -w src/ -x run
+```
+

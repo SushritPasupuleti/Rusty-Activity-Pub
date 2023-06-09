@@ -6,9 +6,10 @@ use axum::{
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::get,
-    Router,
+    Json, Router,
 };
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use serde_json::json;
 
 use crate::handlers::api::Claims;
 
@@ -49,18 +50,26 @@ async fn authorize_current_user(auth_token: &str) -> Option<CurrentUser> {
 
     println!("auth_token parsed: {}", auth_token);
 
-    let secret = "secret for JWT"; 
+    let secret = "secret for JWT";
 
     let mut validation = Validation::new(jsonwebtoken::Algorithm::HS256);
     validation.set_required_spec_claims(&[""]);
 
     println!("validation: {:?}", validation);
 
-    let decoded = decode::<Claims>(auth_token, &DecodingKey::from_secret(secret.as_ref()), &validation).map_err(|err| {
+    let decoded = decode::<Claims>(
+        auth_token,
+        &DecodingKey::from_secret(secret.as_ref()),
+        &validation,
+    )
+    .map_err(|err| {
         println!("err: {:?}", err);
-        err
-    }).ok()?; 
+    })
+    .ok();
 
+    if decoded.is_none() {
+        return None;
+    }
 
     // pretend inserted
     println!("auth_token: {}, decoded: {:?}", auth_token, decoded);
