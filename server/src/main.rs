@@ -1,9 +1,10 @@
-mod routes;
 mod handlers;
 mod middleware;
 mod models;
-mod ActivityPub;
+mod routes;
 mod utils;
+#[allow(non_snake_case)]
+mod ActivityPub;
 
 use crate::models::accounts::Account;
 
@@ -41,9 +42,12 @@ async fn main() {
         .expect("Unable to connect to Postgres");
 
     //run migrations
-    sqlx::migrate!().run(&pool).await.expect("Unable to run migrations");
+    sqlx::migrate!()
+        .run(&pool)
+        .await
+        .expect("Unable to run migrations");
 
-    let state = Arc::new(AppState { 
+    let state = Arc::new(AppState {
         db_pool: pool,
         host_name,
         host_url,
@@ -63,17 +67,19 @@ async fn main() {
         // .merge(routes::api::api_routes().with_state(state))
         .with_state(state.clone())
         .nest("/api", routes::api::api_routes(state.clone()))
-        .nest("/.well-known/webfinger", routes::webfinger::api_routes(state.clone()))
+        .nest(
+            "/.well-known/webfinger",
+            routes::webfinger::api_routes(state.clone()),
+        )
         .nest("/users", routes::users::api_routes(state.clone()))
         .layer(cors);
-
-    // app.with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 5000));
     println!("Server is Running and Listening on {} 🚀", addr);
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
+        .with_graceful_shutdown(utils::server::shutdown_signal())
         .await
         .unwrap();
 }
@@ -165,36 +171,7 @@ async fn get_sha256(
 }
 
 async fn get_accounts(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-
     let pool = &state.db_pool; 
-
-    // let accounts: Vec<Account> = sqlx::query_as!(Account, "SELECT * FROM accounts")
-    //     let accounts_raw = sqlx::query!("SELECT * FROM accounts")
-    //     .fetch_all(&pool)
-    //     .await
-    //     .expect("Unable to fetch accounts");
-    //
-    // // println!("accounts: {:?}", accounts_raw);
-    //
-    // let mut structured_accounts: Vec<Account> = Vec::new();
-    //
-    // for account in accounts_raw {
-    //     println!("account: {:?}", account);
-    //
-    //     let account_struct = Account {
-    //         // name: Some(account.name).unwrap_or("".to_string()),
-    //         name: format!("{:?}", account.name),
-    //         privkey: format!("{:?}", account.privkey),
-    //         pubkey: format!("{:?}", account.pubkey),
-    //         webfinger: format!("{:?}", account.webfinger),
-    //         actor: format!("{:?}", account.actor),
-    //         apikey: format!("{:?}", account.apikey),
-    //         followers: format!("{:?}", account.followers),
-    //         messages: format!("{:?}", account.messages),
-    //     };
-    //
-    //     structured_accounts.push(account_struct);
-    // }
 
     let accounts_struct = sqlx::query_as::<_, Account>(r"SELECT * FROM accounts")
         .fetch_all(pool)

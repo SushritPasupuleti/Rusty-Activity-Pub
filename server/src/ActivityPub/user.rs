@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
+#[allow(non_snake_case)]
 pub struct User {
     pub context: Vec<String>,
     pub id: String,
