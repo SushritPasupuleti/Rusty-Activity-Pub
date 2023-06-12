@@ -20,3 +20,5 @@ hex = "0.4.3"
 base64 = "0.13.0"
 sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "postgres", "macros" ] }
 jsonwebtoken = "8.3.0"
+rcgen = "0.10.0"
+openssl = "0.10.54"

@@ -1,29 +1,43 @@
+#[allow(non_snake_case)]
+mod ActivityPub;
 mod handlers;
 mod middleware;
 mod models;
 mod routes;
 mod utils;
-#[allow(non_snake_case)]
-mod ActivityPub;
 
 use crate::models::accounts::Account;
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
 use base64;
 use hex;
+
+use rcgen::{date_time_ymd, Certificate, CertificateParams, DistinguishedName};
+use std::convert::TryFrom;
 use ring::rand::SecureRandom;
 use ring::{digest, hmac, rand};
 use sha2::{Digest, Sha256, Sha512};
 use sqlx::postgres::PgPoolOptions;
+use std::convert::TryInto;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-// #[derive(Clone)]
+#[derive(Clone)]
 pub struct AppState {
     db_pool: sqlx::PgPool,
     host_name: String,
     host_url: String,
+}
+
+impl AppState {
+    pub fn new(db_pool: sqlx::PgPool, host_name: String, host_url: String) -> Self {
+        Self {
+            db_pool,
+            host_name,
+            host_url,
+        }
+    }
 }
 
 #[tokio::main]
@@ -92,6 +106,8 @@ struct Sha256Result {
     hex: String,
     base64: String,
     key: Option<String>,
+    public_key: Option<String>,
+    private_key: Option<String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -130,6 +146,8 @@ async fn get_sha256(
         hex: hex_res,
         base64: base64_res,
         key: None,
+        public_key: None,
+        private_key: None,
     };
 
     println!("Res: {}: ", res);
@@ -146,6 +164,14 @@ async fn get_sha256(
 
     let signature = hmac::sign(&key, message);
 
+    let modulus_len = 4096;
+
+    let pkey: openssl::pkey::PKey<_> = openssl::rsa::Rsa::generate(modulus_len).unwrap().try_into().unwrap();
+    let key_pair_pem = String::from_utf8(pkey.private_key_to_pem_pkcs8().unwrap()).unwrap();
+    let key_pair = rcgen::KeyPair::from_pem(&key_pair_pem).unwrap();
+
+    println!("(1)key_pair: {:?}", key_pair);
+
     let res2 = format!(
         "message: {:?}\n signature: {:?}\n hex: {}\n base64: {}",
         message,
@@ -161,6 +187,10 @@ async fn get_sha256(
         hex: hex::encode(signature),
         base64: base64::encode(signature),
         key: Some(String::from_utf8(key_value).unwrap()),
+        public_key: Some(key_pair.public_key_pem()),
+        private_key: Some(key_pair.serialize_pem()),
+        // public_key: None,
+        // private_key: None,
     };
 
     let res_array = vec![sha_res, signed_res];
@@ -171,7 +201,7 @@ async fn get_sha256(
 }
 
 async fn get_accounts(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let pool = &state.db_pool; 
+    let pool = &state.db_pool;
 
     let accounts_struct = sqlx::query_as::<_, Account>(r"SELECT * FROM accounts")
         .fetch_all(pool)
