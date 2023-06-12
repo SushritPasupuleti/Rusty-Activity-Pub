@@ -12,12 +12,14 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::ge
 use base64;
 use hex;
 
+use ::rand::Rng;
+use argon2::Config;
 use rcgen::{date_time_ymd, Certificate, CertificateParams, DistinguishedName};
-use std::convert::TryFrom;
 use ring::rand::SecureRandom;
 use ring::{digest, hmac, rand};
 use sha2::{Digest, Sha256, Sha512};
 use sqlx::postgres::PgPoolOptions;
+use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -108,6 +110,8 @@ struct Sha256Result {
     key: Option<String>,
     public_key: Option<String>,
     private_key: Option<String>,
+    hashed_public_key: Option<String>,
+    hashed_private_key: Option<String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -116,6 +120,7 @@ struct ShaRequestQuery {
     key: String,
 }
 
+//just for testing Rust's crypto libraries
 async fn get_sha256(
     query: axum::extract::Query<ShaRequestQuery>,
     State(state): State<Arc<AppState>>,
@@ -148,6 +153,8 @@ async fn get_sha256(
         key: None,
         public_key: None,
         private_key: None,
+        hashed_public_key: None,
+        hashed_private_key: None,
     };
 
     println!("Res: {}: ", res);
@@ -166,11 +173,32 @@ async fn get_sha256(
 
     let modulus_len = 4096;
 
-    let pkey: openssl::pkey::PKey<_> = openssl::rsa::Rsa::generate(modulus_len).unwrap().try_into().unwrap();
+    let pkey: openssl::pkey::PKey<_> = openssl::rsa::Rsa::generate(modulus_len)
+        .unwrap()
+        .try_into()
+        .unwrap();
     let key_pair_pem = String::from_utf8(pkey.private_key_to_pem_pkcs8().unwrap()).unwrap();
     let key_pair = rcgen::KeyPair::from_pem(&key_pair_pem).unwrap();
 
     println!("(1)key_pair: {:?}", key_pair);
+
+    let salt = ::rand::thread_rng().gen::<[u8; 32]>();
+    let config = Config::default();
+
+    let hashed_pub_key =
+        argon2::hash_encoded(key_pair.public_key_pem().as_bytes(), &salt, &config).unwrap();
+
+    let hashed_priv_key =
+        argon2::hash_encoded(key_pair.serialize_pem().as_bytes(), &salt, &config).unwrap();
+
+    let verify_hashed_pub_key = argon2::verify_encoded(&hashed_pub_key, key_pair.public_key_pem().as_bytes()).unwrap();
+    let verify_hashed_priv_key = argon2::verify_encoded(&hashed_priv_key, key_pair.serialize_pem().as_bytes()).unwrap();
+
+    println!("hashed_pub_key: {:?}", hashed_pub_key);
+    println!("hashed_priv_key: {:?}", hashed_priv_key);
+    println!("verify_hashed_pub_key: {:?}", verify_hashed_pub_key);
+    println!("verify_hashed_priv_key: {:?}", verify_hashed_priv_key);
+    println!("salt: {:?}", salt);
 
     let res2 = format!(
         "message: {:?}\n signature: {:?}\n hex: {}\n base64: {}",
@@ -189,6 +217,8 @@ async fn get_sha256(
         key: Some(String::from_utf8(key_value).unwrap()),
         public_key: Some(key_pair.public_key_pem()),
         private_key: Some(key_pair.serialize_pem()),
+        hashed_public_key: Some(hashed_pub_key),
+        hashed_private_key: Some(hashed_priv_key),
         // public_key: None,
         // private_key: None,
     };

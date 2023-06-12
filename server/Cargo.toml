@@ -22,3 +22,5 @@ sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "postgres", "macr
 jsonwebtoken = "8.3.0"
 rcgen = "0.10.0"
 openssl = "0.10.54"
+rust-argon2 = "1.0.0"
+rand = "0.8.5"
