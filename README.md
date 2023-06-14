@@ -1,6 +1,8 @@
 # Rusty Activity Pub
 
-Implementing an ActivityPub server in Rust
+Implementing an ActivityPub server in Rust.
+
+**Note**: This is just an implementation that puts together all necessary logic to build an `ActivityPub` server. This includes things like authentication, hashing, and other necessary mechanisms.
 
 ## Getting Started
 
