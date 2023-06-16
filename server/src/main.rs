@@ -107,10 +107,15 @@ struct Sha256Result {
     sha256: String,
     hex: String,
     base64: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     public_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     private_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     hashed_public_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     hashed_private_key: Option<String>,
 }
 
